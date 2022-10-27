@@ -4,6 +4,7 @@ import java.io.IOException;
 
 public class Lexer {
 
+	public static final char EOF = (char) -1;
 	public static int line = 1;
 	private char peek = ' ';
 
@@ -32,141 +33,161 @@ public class Lexer {
 	}
 
 	public Token lexical_scan(BufferedReader br) {
-		while (peek == ' ' || peek == '\t' || peek == '\n' || peek == '\r') {
-			if (peek == '\n') line++;
-			readch(br);
-		}
-
-		switch (peek) {
-			case '!':
-				peek = ' ';
-				return Token.not;
-
-			case '(':
-				peek = ' ';
-				return Token.lpt;
-
-
-			case ')':
-				peek = ' ';
-				return Token.rpt;
-
-
-			case '[':
-				peek = ' ';
-				return Token.lpq;
-
-
-			case '{':
-				peek = ' ';
-				return Token.lpg;
-
-
-			case '}':
-				peek = ' ';
-				return Token.rpg;
-
-
-			case '+':
-				peek = ' ';
-				return Token.plus;
-
-
-			case '-':
-				peek = ' ';
-				return Token.minus;
-
-
-			case '*':
-				peek = ' ';
-				return Token.mult;
-
-
-			case '/':
-				peek = ' ';
-				return Token.div;
-
-
-			case ';':
-				peek = '\n';
-				return Token.semicolon;
-
-
-			case ',':
-				peek = ' ';
-				return Token.comma;
-
-
-			case '&':
+		while (true) {
+			while (peek == ' ' || peek == '\t' || peek == '\n' || peek == '\r') {
+				if (peek == '\n') line++;
 				readch(br);
-				if (peek == '&') {
-					peek = ' ';
-					return Word.and;
-				} else {
-					System.err.println("Erroneous character" + " after & : " + peek);
-					return null;
-				}
+			}
 
-				// ... gestire i casi di || < > <= >= == <> ... //
-			case '|':
-				readch(br);
-				if (peek == '|') {
+			switch (peek) {
+				case '!':
 					peek = ' ';
-					return Word.or;
-				} else {
-					System.err.println("\n\nErroneous character after | : " + peek);
-					return null;
-				}
-			case '<':
-				readch(br);
-				if (peek == ' ') {
-					return Word.lt;
-				} else if (peek == '=') {
+					return Token.not;
+
+				case '(':
 					peek = ' ';
-					return Word.le;
-				} else if (peek == '>') {
+					return Token.lpt;
+
+
+				case ')':
 					peek = ' ';
-					return Word.ne;
-				} else {
-					System.err.println("\n\nErroneous character after < : " + peek);
-					return null;
-				}
-			case '>':
-				readch(br);
-				if (peek == ' ') {
-					return Word.gt;
-				} else if (peek == '=') {
+					return Token.rpt;
+
+
+				case '[':
 					peek = ' ';
-					return Word.ge;
-				} else {
-					System.err.println("\n\nErroneous character after > : " + peek);
-					return null;
-				}
-			case '=':
-				readch(br);
-				if (peek == '=') {
+					return Token.lpq;
+
+
+				case '{':
 					peek = ' ';
-					return Word.eq;
-				} else {
-					System.err.println("\n\nErroneous character after = : " + peek);
-					return null;
-				}
+					return Token.lpg;
 
-			case (char) -1:
-				return new Token(Tag.EOF);
 
-			default:
-				if (Character.isLetter(peek)) {
-					return toWord(br);
+				case '}':
+					peek = ' ';
+					return Token.rpg;
 
-				} else if (Character.isDigit(peek)) {
 
-					return toNumberToken(br);
+				case '+':
+					peek = ' ';
+					return Token.plus;
 
-				} else {
-					System.err.println("Erroneous character: " + peek);
-					return null;
-				}
+
+				case '-':
+					peek = ' ';
+					return Token.minus;
+
+
+				case '*':
+					peek = ' ';
+					return Token.mult;
+
+
+				case '/':
+					readch(br);
+					if (peek == '/') {
+						do {
+							readch(br);
+						} while (peek != EOF && peek != '\n');
+					} else if (peek == '*') {
+						char old;
+						peek = '\0';
+						do {
+							old = peek;
+							readch(br);
+						} while (peek != EOF && !(old == '*' && peek == '/'));
+						if (peek == EOF) {
+							System.err.println("\n\nError, never closed /* */ type comment : ");
+							return null;
+						}
+						peek = ' ';
+					} else return Token.div; //no new peek
+					break;
+
+
+				case ';':
+					peek = '\n';
+					return Token.semicolon;
+
+
+				case ',':
+					peek = ' ';
+					return Token.comma;
+
+
+				case '&':
+					readch(br);
+					if (peek == '&') {
+						peek = ' ';
+						return Word.and;
+					} else {
+						System.err.println("Erroneous character" + " after & : " + peek);
+						return null;
+					}
+
+				case '|':
+					readch(br);
+					if (peek == '|') {
+						peek = ' ';
+						return Word.or;
+					} else {
+						System.err.println("\n\nErroneous character after | : " + peek);
+						return null;
+					}
+
+				case '<':
+					readch(br);
+					if (peek == ' ') {
+						return Word.lt;
+					} else if (peek == '=') {
+						peek = ' ';
+						return Word.le;
+					} else if (peek == '>') {
+						peek = ' ';
+						return Word.ne;
+					} else {
+						System.err.println("\n\nErroneous character after < : " + peek);
+						return null;
+					}
+
+				case '>':
+					readch(br);
+					if (peek == ' ') {
+						return Word.gt;
+					} else if (peek == '=') {
+						peek = ' ';
+						return Word.ge;
+					} else {
+						System.err.println("\n\nErroneous character after > : " + peek);
+						return null;
+					}
+				case '=':
+					readch(br);
+					if (peek == '=') {
+						peek = ' ';
+						return Word.eq;
+					} else {
+						System.err.println("\n\nErroneous character after = : " + peek);
+						return null;
+					}
+
+				case EOF:
+					return new Token(Tag.EOF);
+
+				default:
+					if (Character.isLetter(peek)) {
+						return toWord(br);
+
+					} else if (Character.isDigit(peek)) {
+
+						return toNumberToken(br);
+
+					} else {
+						System.err.println("Erroneous character: " + peek);
+						return null;
+					}
+			}
 		}
 	}
 
@@ -187,8 +208,8 @@ public class Lexer {
 		}
 
 		// CHECK NO NUMBER-CHAR OR NUM_
-		if (Character.isLetter(peek) || peek=='_') {
-			System.err.println("\n\nErroneous character after number : '" + peek+"'");
+		if (Character.isLetter(peek) || peek == '_') {
+			System.err.println("\n\nErroneous character after number : '" + peek + "'");
 			return null;
 		}
 
@@ -197,46 +218,34 @@ public class Lexer {
 	}
 
 
-	private Token toWord(BufferedReader br){
+	private Token toWord(BufferedReader br) {
 		String s = "";
 		boolean onlySlash = true;
 
 		do {
 			s += "" + peek;
-			if(peek!='_')
-				onlySlash=false;
+			if (peek != '_') onlySlash = false;
 			readch(br);
-		} while (Character.isLetterOrDigit(peek) || peek=='_');
+		} while (Character.isLetterOrDigit(peek) || peek == '_');
 
-		if(s.charAt(0)=='_'){
-			if(onlySlash){
-				System.err.println("\n\nErroneous identification (only '_') in: " +s);
+		if (s.charAt(0) == '_') {
+			if (onlySlash) {
+				System.err.println("\n\nErroneous identification (only '_') in: " + s);
 				return null;
 			}
 		}
 		// KEY WORD
-		else if (s.equals("assign"))
-			return Word.assign;
-		else if (s.equals("to"))
-			return Word.to;
-		else if (s.equals("conditional"))
-			return Word.conditional;
-		else if (s.equals("option"))
-			return Word.option;
-		else if (s.equals("do"))
-			return Word.dotok;
-		else if (s.equals("else"))
-			return Word.elsetok;
-		else if (s.equals("while"))
-			return Word.whiletok;
-		else if (s.equals("begin"))
-			return Word.begin;
-		else if (s.equals("end"))
-			return Word.end;
-		else if (s.equals("print"))
-			return Word.print;
-		else if (s.equals("read"))
-			return Word.read;
+		else if (s.equals("assign")) return Word.assign;
+		else if (s.equals("to")) return Word.to;
+		else if (s.equals("conditional")) return Word.conditional;
+		else if (s.equals("option")) return Word.option;
+		else if (s.equals("do")) return Word.dotok;
+		else if (s.equals("else")) return Word.elsetok;
+		else if (s.equals("while")) return Word.whiletok;
+		else if (s.equals("begin")) return Word.begin;
+		else if (s.equals("end")) return Word.end;
+		else if (s.equals("print")) return Word.print;
+		else if (s.equals("read")) return Word.read;
 
 		// IDENTIFIER
 		// don't clean peek
